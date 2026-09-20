@@ -1,13 +1,12 @@
-namespace Niobium.AI.Ecommerce.Contracts
+namespace Niobium.AI.Ecommerce.Contracts;
+
+public class ProductNormalizerInput
 {
-    public class ProductNormalizerInput
-    {
-        public required string ProductName { get; set; }
+    public required string ProductName { get; set; }
 
-        public required string Country { get; set; }
+    public required string Country { get; set; }
 
-        public string? CategoryName { get; set; }
+    public string? CategoryName { get; set; }
 
-        public List<string> KnownFeatures { get; set; } = [];
-    }
+    public List<string> KnownFeatures { get; set; } = [];
 }

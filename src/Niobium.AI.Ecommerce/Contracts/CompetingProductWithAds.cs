@@ -1,11 +1,10 @@
-namespace Niobium.AI.Ecommerce.Contracts
+namespace Niobium.AI.Ecommerce.Contracts;
+
+internal class CompetingProductWithAds
 {
-    internal class CompetingProductWithAds
-    {
-        public required ProductDiscoveryInput Job { get; set; }
+    public required ProductDiscoveryInput Job { get; set; }
 
-        public required CompetingProduct Product { get; set; }
+    public required CompetingProduct Product { get; set; }
 
-        public required List<MetaAd> Ads { get; set; } = [];
-    }
+    public required List<MetaAd> Ads { get; set; } = [];
 }

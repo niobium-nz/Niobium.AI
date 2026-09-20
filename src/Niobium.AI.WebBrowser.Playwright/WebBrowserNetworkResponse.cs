@@ -1,15 +1,14 @@
-namespace Niobium.AI.WebBrowser.Playwright
+namespace Niobium.AI.WebBrowser.Playwright;
+
+public sealed record WebBrowserNetworkResponse
 {
-    public sealed record WebBrowserNetworkResponse
-    {
-        public required IReadOnlyDictionary<string, string> Headers { get; init; }
+    public required IReadOnlyDictionary<string, string> Headers { get; init; }
 
-        public required bool Ok { get; init; }
+    public required bool Ok { get; init; }
 
-        public required int Status { get; init; }
+    public required int Status { get; init; }
 
-        public required string StatusText { get; init; }
+    public required string StatusText { get; init; }
 
-        public required string Url { get; init; }
-    }
+    public required string Url { get; init; }
 }

@@ -1,11 +1,10 @@
 using Microsoft.Extensions.AI;
 
-namespace Niobium.AI
-{
-    public class ToolBox
-    {
-        public AITool WebSearchTool => new HostedWebSearchTool();
+namespace Niobium.AI;
 
-        public AITool CodeInterpreterTool => new HostedCodeInterpreterTool();
-    }
+public class ToolBox
+{
+    public AITool WebSearchTool => new HostedWebSearchTool();
+
+    public AITool CodeInterpreterTool => new HostedCodeInterpreterTool();
 }

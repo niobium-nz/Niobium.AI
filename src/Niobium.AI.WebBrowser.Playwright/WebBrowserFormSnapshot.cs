@@ -1,17 +1,16 @@
-namespace Niobium.AI.WebBrowser.Playwright
+namespace Niobium.AI.WebBrowser.Playwright;
+
+public sealed record WebBrowserFormSnapshot
 {
-    public sealed record WebBrowserFormSnapshot
-    {
-        public string? Action { get; init; }
+    public string? Action { get; init; }
 
-        public required IReadOnlyList<WebBrowserFormFieldSnapshot> Fields { get; init; }
+    public required IReadOnlyList<WebBrowserFormFieldSnapshot> Fields { get; init; }
 
-        public string? Id { get; init; }
+    public string? Id { get; init; }
 
-        public required int Index { get; init; }
+    public required int Index { get; init; }
 
-        public string? Method { get; init; }
+    public string? Method { get; init; }
 
-        public string? Name { get; init; }
-    }
+    public string? Name { get; init; }
 }

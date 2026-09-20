@@ -1,14 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace Niobium.AI.WebScraper.Firecrawl
+namespace Niobium.AI.WebScraper.Firecrawl;
+
+public class WebScrapeResult
 {
-    public class WebScrapeResult
-    {
-        public bool Success { get; set; }
+    public bool Success { get; set; }
 
-        [MemberNotNull(nameof(Success))]
-        public string? WebPageContentInMarkdownFormat { get; set; }
+    [MemberNotNull(nameof(Success))]
+    public string? WebPageContentInMarkdownFormat { get; set; }
 
-        public Dictionary<string, object> Metadata { get; init; } = [];
-    }
+    public Dictionary<string, object> Metadata { get; init; } = [];
 }

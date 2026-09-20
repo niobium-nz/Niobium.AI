@@ -1,9 +1,8 @@
-namespace Niobium.AI.Ecommerce.Contracts
-{
-    internal class ImageProducerOutput
-    {
-        public required string AssetId { get; init; }
+namespace Niobium.AI.Ecommerce.Contracts;
 
-        public required List<Uri> ImageVariants { get; init; } = [];
-    }
+internal class ImageProducerOutput
+{
+    public required string AssetId { get; init; }
+
+    public required List<Uri> ImageVariants { get; init; } = [];
 }

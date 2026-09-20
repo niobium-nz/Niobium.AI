@@ -5,128 +5,127 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Niobium.AI.OpenAI
+namespace Niobium.AI.OpenAI;
+
+internal class SoraVideoClient(HttpClient client, IOptions<OpenAIOptions> options, IConfiguration configuration, ILogger<SoraVideoClient> logger) : IVideoClient
 {
-    internal class SoraVideoClient(HttpClient client, IOptions<OpenAIOptions> options, IConfiguration configuration, ILogger<SoraVideoClient> logger) : IVideoClient
+    private bool isInitiated;
+
+    public void Initialize(string provider)
     {
-        private bool isInitiated;
+        string? endpoint = options.Value.VideoEndpoint.Trim();
+        string? key = options.Value.VideoEndpointKey.Trim();
 
-        public void Initialize(string provider)
+        if (!String.IsNullOrWhiteSpace(provider))
         {
-            string? endpoint = options.Value.VideoEndpoint.Trim();
-            string? key = options.Value.VideoEndpointKey.Trim();
-
-            if (!String.IsNullOrWhiteSpace(provider))
-            {
-                IConfigurationSection config = configuration.GetRequiredSection(OpenAIOptions.SectionName);
-                endpoint = config.GetValue<string>($"{provider.Trim().ToUpperInvariant()}{nameof(OpenAIOptions.VideoEndpoint).ToUpperInvariant()}");
-                key = config.GetValue<string>($"{provider.Trim().ToUpperInvariant()}{nameof(OpenAIOptions.VideoEndpointKey).ToUpperInvariant()}");
-            }
-
-            if (String.IsNullOrWhiteSpace(endpoint) || String.IsNullOrWhiteSpace(key))
-            {
-                throw new ArgumentException("Response endpoint and key must be configured.");
-            }
-
-            client.BaseAddress = new Uri(endpoint);
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", key);
-            this.isInitiated = true;
+            IConfigurationSection config = configuration.GetRequiredSection(OpenAIOptions.SectionName);
+            endpoint = config.GetValue<string>($"{provider.Trim().ToUpperInvariant()}{nameof(OpenAIOptions.VideoEndpoint).ToUpperInvariant()}");
+            key = config.GetValue<string>($"{provider.Trim().ToUpperInvariant()}{nameof(OpenAIOptions.VideoEndpointKey).ToUpperInvariant()}");
         }
 
-        public async Task<BinaryData> RunAsync(
-            string prompt,
-            int width,
-            int height,
-            int durationInSeconds,
-            CancellationToken cancellationToken)
+        if (String.IsNullOrWhiteSpace(endpoint) || String.IsNullOrWhiteSpace(key))
         {
-            if (!this.isInitiated)
+            throw new ArgumentException("Response endpoint and key must be configured.");
+        }
+
+        client.BaseAddress = new Uri(endpoint);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", key);
+        this.isInitiated = true;
+    }
+
+    public async Task<BinaryData> RunAsync(
+        string prompt,
+        int width,
+        int height,
+        int durationInSeconds,
+        CancellationToken cancellationToken)
+    {
+        if (!this.isInitiated)
+        {
+            throw new InvalidOperationException($"{nameof(SoraVideoClient)} must be initialized.");
+        }
+
+        if (durationInSeconds is not 4 and not 8 and not 12)
+        {
+            throw new ArgumentOutOfRangeException(nameof(durationInSeconds));
+        }
+
+        var requestBody = new
+        {
+            prompt,
+            size = $"{width}x{height}",
+            seconds = durationInSeconds.ToString(),
+            model = Models.SORA_2,
+        };
+        string json = JsonSerializer.Serialize(requestBody, SerializationOptions.SnakeCase);
+        StringContent requestContent = new(json, Encoding.UTF8, "application/json");
+        HttpRequestMessage request = new(HttpMethod.Post, "videos")
+        {
+            Content = requestContent
+        };
+
+        HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogError("Sora API request failed with status code {StatusCode}: {ResponseBody}", response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
+            throw new HttpRequestException($"Sora create API request failed with status code {response.StatusCode}");
+        }
+
+        string responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+        using JsonDocument document = JsonDocument.Parse(responseContent);
+        string? videoId = document.RootElement.GetProperty("id").GetString();
+        if (String.IsNullOrWhiteSpace(videoId))
+        {
+            ApplicationException ex = new("Failed to get video ID from Sora response");
+            logger.LogError(ex, "Failed to get video ID from Sora response: {ResponseContent}", responseContent);
+            throw ex;
+        }
+
+        logger.LogInformation("Sora video generation started with ID: {VideoId}", videoId);
+
+        SoraJobQuery? result = null;
+        while (result == null || result.Status != "completed")
+        {
+            HttpRequestMessage queryRequest = new(HttpMethod.Get, $"videos/{videoId}");
+            HttpResponseMessage queryResponse = await client.SendAsync(queryRequest, cancellationToken);
+            if (!queryResponse.IsSuccessStatusCode)
             {
-                throw new InvalidOperationException($"{nameof(SoraVideoClient)} must be initialized.");
+                logger.LogError("Sora API request failed with status code {StatusCode}: {ResponseBody}", queryResponse.StatusCode, await queryResponse.Content.ReadAsStringAsync(cancellationToken));
+                throw new HttpRequestException($"Sora query API request failed with status code {queryResponse.StatusCode}");
             }
 
-            if (durationInSeconds is not 4 and not 8 and not 12)
-            {
-                throw new ArgumentOutOfRangeException(nameof(durationInSeconds));
-            }
+            string queryResponseContent = await queryResponse.Content.ReadAsStringAsync(cancellationToken);
+            result = JsonSerializer.Deserialize<SoraJobQuery>(queryResponseContent, SerializationOptions.SnakeCase);
 
-            var requestBody = new
+            if (result?.Status == "failed")
             {
-                prompt,
-                size = $"{width}x{height}",
-                seconds = durationInSeconds.ToString(),
-                model = Models.SORA_2,
-            };
-            string json = JsonSerializer.Serialize(requestBody, SerializationOptions.SnakeCase);
-            StringContent requestContent = new(json, Encoding.UTF8, "application/json");
-            HttpRequestMessage request = new(HttpMethod.Post, "videos")
-            {
-                Content = requestContent
-            };
-
-            HttpResponseMessage response = await client.SendAsync(request, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogError("Sora API request failed with status code {StatusCode}: {ResponseBody}", response.StatusCode, await response.Content.ReadAsStringAsync(cancellationToken));
-                throw new HttpRequestException($"Sora create API request failed with status code {response.StatusCode}");
-            }
-
-            string responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            using JsonDocument document = JsonDocument.Parse(responseContent);
-            string? videoId = document.RootElement.GetProperty("id").GetString();
-            if (String.IsNullOrWhiteSpace(videoId))
-            {
-                ApplicationException ex = new("Failed to get video ID from Sora response");
-                logger.LogError(ex, "Failed to get video ID from Sora response: {ResponseContent}", responseContent);
+                ApplicationException ex = new("Sora video generation failed");
+                logger.LogError(ex, "Sora video generation failed with code {Code}: {ErrorMessage}", result?.Error?.Code, result?.Error?.Message);
                 throw ex;
             }
 
-            logger.LogInformation("Sora video generation started with ID: {VideoId}", videoId);
-
-            SoraJobQuery? result = null;
-            while (result == null || result.Status != "completed")
+            if (result?.Status == "cancelled" || cancellationToken.IsCancellationRequested)
             {
-                HttpRequestMessage queryRequest = new(HttpMethod.Get, $"videos/{videoId}");
-                HttpResponseMessage queryResponse = await client.SendAsync(queryRequest, cancellationToken);
-                if (!queryResponse.IsSuccessStatusCode)
-                {
-                    logger.LogError("Sora API request failed with status code {StatusCode}: {ResponseBody}", queryResponse.StatusCode, await queryResponse.Content.ReadAsStringAsync(cancellationToken));
-                    throw new HttpRequestException($"Sora query API request failed with status code {queryResponse.StatusCode}");
-                }
-
-                string queryResponseContent = await queryResponse.Content.ReadAsStringAsync(cancellationToken);
-                result = JsonSerializer.Deserialize<SoraJobQuery>(queryResponseContent, SerializationOptions.SnakeCase);
-
-                if (result?.Status == "failed")
-                {
-                    ApplicationException ex = new("Sora video generation failed");
-                    logger.LogError(ex, "Sora video generation failed with code {Code}: {ErrorMessage}", result?.Error?.Code, result?.Error?.Message);
-                    throw ex;
-                }
-
-                if (result?.Status == "cancelled" || cancellationToken.IsCancellationRequested)
-                {
-                    OperationCanceledException ex = new("Sora video generation was cancelled", cancellationToken);
-                    logger.LogInformation(ex, "Sora video generation was cancelled");
-                    throw ex;
-                }
-
-                logger.LogInformation("Sora video generation status: {Status}, current progress: {Progress}. Checking again in 20 seconds...", result?.Status, result?.Progress);
-                await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken);
+                OperationCanceledException ex = new("Sora video generation was cancelled", cancellationToken);
+                logger.LogInformation(ex, "Sora video generation was cancelled");
+                throw ex;
             }
 
-            logger.LogInformation("Sora video generation completed for ID: {VideoId}. Starting download...", videoId);
-            HttpRequestMessage downloadRequest = new(HttpMethod.Get, $"videos/{videoId}/content");
-            HttpResponseMessage downloadResponse = await client.SendAsync(downloadRequest, cancellationToken);
-            if (!downloadResponse.IsSuccessStatusCode)
-            {
-                logger.LogError("Sora API request failed with status code {StatusCode}: {ResponseBody}", downloadResponse.StatusCode, await downloadResponse.Content.ReadAsStringAsync(cancellationToken));
-                throw new HttpRequestException($"Sora download API request failed with status code {downloadResponse.StatusCode}");
-            }
-
-            using Stream video = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken);
-            logger.LogInformation("Sora video downloaded for ID {VideoId}", videoId);
-            return BinaryData.FromStream(video);
+            logger.LogInformation("Sora video generation status: {Status}, current progress: {Progress}. Checking again in 20 seconds...", result?.Status, result?.Progress);
+            await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken);
         }
+
+        logger.LogInformation("Sora video generation completed for ID: {VideoId}. Starting download...", videoId);
+        HttpRequestMessage downloadRequest = new(HttpMethod.Get, $"videos/{videoId}/content");
+        HttpResponseMessage downloadResponse = await client.SendAsync(downloadRequest, cancellationToken);
+        if (!downloadResponse.IsSuccessStatusCode)
+        {
+            logger.LogError("Sora API request failed with status code {StatusCode}: {ResponseBody}", downloadResponse.StatusCode, await downloadResponse.Content.ReadAsStringAsync(cancellationToken));
+            throw new HttpRequestException($"Sora download API request failed with status code {downloadResponse.StatusCode}");
+        }
+
+        using Stream video = await downloadResponse.Content.ReadAsStreamAsync(cancellationToken);
+        logger.LogInformation("Sora video downloaded for ID {VideoId}", videoId);
+        return BinaryData.FromStream(video);
     }
 }

@@ -1,13 +1,12 @@
-namespace Niobium.AI.Ecommerce.Contracts
+namespace Niobium.AI.Ecommerce.Contracts;
+
+internal class ProductDiscoveryInput
 {
-    internal class ProductDiscoveryInput
-    {
-        public required Guid JobId { get; init; }
+    public required Guid JobId { get; init; }
 
-        public required string SourceCountry { get; init; }
+    public required string SourceCountry { get; init; }
 
-        public required string TargetCountry { get; init; }
+    public required string TargetCountry { get; init; }
 
-        public required string Keyword { get; init; }
-    }
+    public required string Keyword { get; init; }
 }

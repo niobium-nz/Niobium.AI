@@ -1,9 +1,8 @@
 using Microsoft.Extensions.AI;
 
-namespace Niobium.AI
+namespace Niobium.AI;
+
+public interface IChatClientFactory
 {
-    public interface IChatClientFactory
-    {
-        IChatClient CreateChatClient(string model, string? provider = null);
-    }
+    IChatClient CreateChatClient(string model, string? provider = null);
 }

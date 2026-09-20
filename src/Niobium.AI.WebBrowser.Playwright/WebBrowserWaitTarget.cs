@@ -1,9 +1,8 @@
-namespace Niobium.AI.WebBrowser.Playwright
+namespace Niobium.AI.WebBrowser.Playwright;
+
+public enum WebBrowserWaitTarget
 {
-    public enum WebBrowserWaitTarget
-    {
-        Selector,
-        LoadState,
-        Timeout,
-    }
+    Selector,
+    LoadState,
+    Timeout,
 }

@@ -1,11 +1,10 @@
-namespace Niobium.AI.Shorts.Contracts
+namespace Niobium.AI.Shorts.Contracts;
+
+internal class AttractiveShortWorkflowOutput
 {
-    internal class AttractiveShortWorkflowOutput
-    {
-        public required string Status { get; init; }
+    public required string Status { get; init; }
 
-        public string? AdName { get; init; }
+    public string? AdName { get; init; }
 
-        public List<string> ScreenshotFullFilePath { get; init; } = [];
-    }
+    public List<string> ScreenshotFullFilePath { get; init; } = [];
 }

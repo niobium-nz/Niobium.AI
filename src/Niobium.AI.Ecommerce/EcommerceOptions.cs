@@ -1,9 +1,8 @@
-namespace Niobium.AI.Ecommerce
-{
-    public class EcommerceOptions
-    {
-        public static readonly string SectionName = nameof(EcommerceOptions).ToUpperInvariant();
+namespace Niobium.AI.Ecommerce;
 
-        public required string ScrapeCreatorsKey { get; set; }
-    }
+public class EcommerceOptions
+{
+    public static readonly string SectionName = nameof(EcommerceOptions).ToUpperInvariant();
+
+    public required string ScrapeCreatorsKey { get; set; }
 }

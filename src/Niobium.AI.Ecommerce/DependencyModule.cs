@@ -3,31 +3,30 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Niobium.AI.Ecommerce.Tools;
 
-namespace Niobium.AI.Ecommerce
+namespace Niobium.AI.Ecommerce;
+
+public static class DependencyModule
 {
-    public static class DependencyModule
+    private static volatile bool loaded = false;
+
+    public static IHostApplicationBuilder AddEcommerce(this IHostApplicationBuilder builder)
     {
-        private static volatile bool loaded = false;
+        builder.AddAI().Services.AddEcommerce(builder.Configuration.GetSection(EcommerceOptions.SectionName).Bind);
+        return builder;
+    }
 
-        public static IHostApplicationBuilder AddEcommerce(this IHostApplicationBuilder builder)
+    public static IServiceCollection AddEcommerce(this IServiceCollection services, Action<EcommerceOptions> options)
+    {
+        if (loaded)
         {
-            builder.AddAI().Services.AddEcommerce(builder.Configuration.GetSection(EcommerceOptions.SectionName).Bind);
-            return builder;
+            return services;
         }
 
-        public static IServiceCollection AddEcommerce(this IServiceCollection services, Action<EcommerceOptions> options)
-        {
-            if (loaded)
-            {
-                return services;
-            }
+        loaded = true;
 
-            loaded = true;
-
-            return services.Configure<EcommerceOptions>(options.Invoke)
-                .AddTransient<AdsLibraryTool>()
-                .AddSingleton<Tools.ToolBox>()
-                .AddTransient<IMetaAdsLibrary, ScrapecreatorsMetaAdsLibrary>();
-        }
+        return services.Configure<EcommerceOptions>(options.Invoke)
+            .AddTransient<AdsLibraryTool>()
+            .AddSingleton<Tools.ToolBox>()
+            .AddTransient<IMetaAdsLibrary, ScrapecreatorsMetaAdsLibrary>();
     }
 }

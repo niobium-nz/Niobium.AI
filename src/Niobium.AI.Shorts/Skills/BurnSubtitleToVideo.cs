@@ -5,220 +5,219 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Niobium.AI.Shorts.Contracts;
 
-namespace Niobium.AI.Shorts.Skills
+namespace Niobium.AI.Shorts.Skills;
+
+internal class BurnSubtitleToVideo
 {
-    internal class BurnSubtitleToVideo
+    private const string EmphasisWordRegexFormat = "\\b({0})\\b";
+
+    public static async Task<Stream> BurnInSubtitlesAsync(Stream videoStream, IVideoInstruction videoInstruction, SubtitlePlan subtitlePlan, CancellationToken cancellationToken)
     {
-        private const string EmphasisWordRegexFormat = "\\b({0})\\b";
+        ArgumentNullException.ThrowIfNull(videoStream);
+        ArgumentNullException.ThrowIfNull(videoInstruction);
+        ArgumentNullException.ThrowIfNull(subtitlePlan);
 
-        public static async Task<Stream> BurnInSubtitlesAsync(Stream videoStream, IVideoInstruction videoInstruction, SubtitlePlan subtitlePlan, CancellationToken cancellationToken)
+        if (videoInstruction.VideoWidth <= 0 || videoInstruction.VideoHeight <= 0)
         {
-            ArgumentNullException.ThrowIfNull(videoStream);
-            ArgumentNullException.ThrowIfNull(videoInstruction);
-            ArgumentNullException.ThrowIfNull(subtitlePlan);
+            throw new InvalidOperationException("Video dimensions must be set before burning subtitles.");
+        }
 
-            if (videoInstruction.VideoWidth <= 0 || videoInstruction.VideoHeight <= 0)
+        if (subtitlePlan.Captions is null || subtitlePlan.Captions.Count == 0)
+        {
+            return videoStream;
+        }
+
+        string tempVideoPath = Path.Combine(Path.GetTempPath(), $"video_{Guid.NewGuid():N}.mp4");
+        try
+        {
+            using (videoStream)
+            using (FileStream fileStream = File.Create(tempVideoPath))
             {
-                throw new InvalidOperationException("Video dimensions must be set before burning subtitles.");
+                await videoStream.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
             }
 
-            if (subtitlePlan.Captions is null || subtitlePlan.Captions.Count == 0)
-            {
-                return videoStream;
-            }
+            string outputPath = Path.Combine(Path.GetTempPath(), $"subs_{Guid.NewGuid():N}.mp4");
+            string assPath = Path.Combine(Path.GetTempPath(), $"subs_{Guid.NewGuid():N}.ass");
 
-            string tempVideoPath = Path.Combine(Path.GetTempPath(), $"video_{Guid.NewGuid():N}.mp4");
             try
             {
-                using (videoStream)
-                using (FileStream fileStream = File.Create(tempVideoPath))
-                {
-                    await videoStream.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
-                }
-
-                string outputPath = Path.Combine(Path.GetTempPath(), $"subs_{Guid.NewGuid():N}.mp4");
-                string assPath = Path.Combine(Path.GetTempPath(), $"subs_{Guid.NewGuid():N}.ass");
-
-                try
-                {
-                    await File.WriteAllTextAsync(assPath, BuildAss(subtitlePlan, videoInstruction.VideoWidth, videoInstruction.VideoHeight), Encoding.UTF8, cancellationToken).ConfigureAwait(false);
-                    await RunFFmpegBurnAsync(tempVideoPath, outputPath, assPath, cancellationToken).ConfigureAwait(false);
-                    return File.OpenRead(outputPath);
-                }
-                catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
-                {
-                    throw new InvalidOperationException("Failed to start ffmpeg to burn subtitles.", ex);
-                }
-                finally
-                {
-                    try
-                    {
-                        File.Delete(assPath);
-                    }
-                    catch
-                    {
-                    }
-                }
+                await File.WriteAllTextAsync(assPath, BuildAss(subtitlePlan, videoInstruction.VideoWidth, videoInstruction.VideoHeight), Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+                await RunFFmpegBurnAsync(tempVideoPath, outputPath, assPath, cancellationToken).ConfigureAwait(false);
+                return File.OpenRead(outputPath);
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+            {
+                throw new InvalidOperationException("Failed to start ffmpeg to burn subtitles.", ex);
             }
             finally
             {
                 try
                 {
-                    File.Delete(tempVideoPath);
+                    File.Delete(assPath);
                 }
                 catch
                 {
                 }
             }
         }
-
-        private static string BuildAss(SubtitlePlan plan, int width, int height)
+        finally
         {
-            ArgumentNullException.ThrowIfNull(plan);
-
-            int fontSize = Math.Max(10, plan.Style.FontSizePt > 0 ? plan.Style.FontSizePt : (int)Math.Round(height * 0.06));
-            int outlinePx = Math.Max(1, plan.Style.OutlineWidthPt > 0 ? plan.Style.OutlineWidthPt : (int)Math.Round(fontSize * 0.08));
-            int marginV = Math.Max(10, (int)Math.Round(height * 0.06));
-            int marginLR = Math.Max(10, (int)Math.Round(width * 0.06));
-            string primary = ColorToAssPrimary(plan.Style.ColorRgb);
-            string outlineColor = ColorToAssPrimary(plan.Style.OutlineRgb);
-
-            StringBuilder header = new StringBuilder()
-                .AppendLine("[Script Info]")
-                .AppendLine("ScriptType: v4.00+")
-                .AppendLine("WrapStyle: 2")
-                .AppendLine("ScaledBorderAndShadow: yes")
-                .AppendLine($"PlayResX: {width}")
-                .AppendLine($"PlayResY: {height}")
-                .AppendLine()
-                .AppendLine("[V4+ Styles]")
-                .AppendLine("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding")
-                .Append("Style: Default,Arial,")
-                .Append(fontSize.ToString(CultureInfo.InvariantCulture)).Append(',')
-                .Append(primary).Append(',')
-                .Append("&H00000000,")
-                .Append(outlineColor).Append(',')
-                .Append("&H00000000,0,0,0,0,100,100,0,0,1,")
-                .Append(outlinePx.ToString(CultureInfo.InvariantCulture)).Append(",0,2,")
-                .Append(marginLR.ToString(CultureInfo.InvariantCulture)).Append(',')
-                .Append(marginLR.ToString(CultureInfo.InvariantCulture)).Append(',')
-                .Append(marginV.ToString(CultureInfo.InvariantCulture)).AppendLine(",1")
-                .AppendLine()
-                .AppendLine("[Events]")
-                .AppendLine("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text");
-
-            foreach (SubtitleCaption caption in plan.Captions)
+            try
             {
-                string textRaw = String.Join("\\N", caption.Text.Select(EscapeAssText));
-                string text = ApplyEmphasis(textRaw, caption.Emphasis);
-                _ = header.Append("Dialogue: 0,")
-                    .Append(AssTime(caption.Start)).Append(',')
-                    .Append(AssTime(caption.End)).Append(",Default,,0,0,0,,")
-                    .AppendLine(text);
+                File.Delete(tempVideoPath);
             }
+            catch
+            {
+            }
+        }
+    }
 
-            return header.ToString();
+    private static string BuildAss(SubtitlePlan plan, int width, int height)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+
+        int fontSize = Math.Max(10, plan.Style.FontSizePt > 0 ? plan.Style.FontSizePt : (int)Math.Round(height * 0.06));
+        int outlinePx = Math.Max(1, plan.Style.OutlineWidthPt > 0 ? plan.Style.OutlineWidthPt : (int)Math.Round(fontSize * 0.08));
+        int marginV = Math.Max(10, (int)Math.Round(height * 0.06));
+        int marginLR = Math.Max(10, (int)Math.Round(width * 0.06));
+        string primary = ColorToAssPrimary(plan.Style.ColorRgb);
+        string outlineColor = ColorToAssPrimary(plan.Style.OutlineRgb);
+
+        StringBuilder header = new StringBuilder()
+            .AppendLine("[Script Info]")
+            .AppendLine("ScriptType: v4.00+")
+            .AppendLine("WrapStyle: 2")
+            .AppendLine("ScaledBorderAndShadow: yes")
+            .AppendLine($"PlayResX: {width}")
+            .AppendLine($"PlayResY: {height}")
+            .AppendLine()
+            .AppendLine("[V4+ Styles]")
+            .AppendLine("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding")
+            .Append("Style: Default,Arial,")
+            .Append(fontSize.ToString(CultureInfo.InvariantCulture)).Append(',')
+            .Append(primary).Append(',')
+            .Append("&H00000000,")
+            .Append(outlineColor).Append(',')
+            .Append("&H00000000,0,0,0,0,100,100,0,0,1,")
+            .Append(outlinePx.ToString(CultureInfo.InvariantCulture)).Append(",0,2,")
+            .Append(marginLR.ToString(CultureInfo.InvariantCulture)).Append(',')
+            .Append(marginLR.ToString(CultureInfo.InvariantCulture)).Append(',')
+            .Append(marginV.ToString(CultureInfo.InvariantCulture)).AppendLine(",1")
+            .AppendLine()
+            .AppendLine("[Events]")
+            .AppendLine("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text");
+
+        foreach (SubtitleCaption caption in plan.Captions)
+        {
+            string textRaw = String.Join("\\N", caption.Text.Select(EscapeAssText));
+            string text = ApplyEmphasis(textRaw, caption.Emphasis);
+            _ = header.Append("Dialogue: 0,")
+                .Append(AssTime(caption.Start)).Append(',')
+                .Append(AssTime(caption.End)).Append(",Default,,0,0,0,,")
+                .AppendLine(text);
         }
 
-        private static string AssTime(double seconds)
+        return header.ToString();
+    }
+
+    private static string AssTime(double seconds)
+    {
+        int totalCs = (int)Math.Round(seconds * 100, MidpointRounding.AwayFromZero);
+        int cs = totalCs % 100;
+        int totalS = totalCs / 100;
+        int s = totalS % 60;
+        int totalM = totalS / 60;
+        int m = totalM % 60;
+        int h = totalM / 60;
+        return String.Create(CultureInfo.InvariantCulture, $"{h}:{m:00}:{s:00}.{cs:00}");
+    }
+
+    private static string EscapeAssText(string text) =>
+        (text ?? String.Empty)
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Replace('\r', '\n')
+            .Replace("{", "\\{", StringComparison.Ordinal)
+            .Replace("}", "\\}", StringComparison.Ordinal)
+            .Replace("\n", "\\N", StringComparison.Ordinal);
+
+    private static string ApplyEmphasis(string text, string? emphasisWord)
+    {
+        if (String.IsNullOrWhiteSpace(emphasisWord))
         {
-            int totalCs = (int)Math.Round(seconds * 100, MidpointRounding.AwayFromZero);
-            int cs = totalCs % 100;
-            int totalS = totalCs / 100;
-            int s = totalS % 60;
-            int totalM = totalS / 60;
-            int m = totalM % 60;
-            int h = totalM / 60;
-            return String.Create(CultureInfo.InvariantCulture, $"{h}:{m:00}:{s:00}.{cs:00}");
+            return text;
         }
 
-        private static string EscapeAssText(string text) =>
-            (text ?? String.Empty)
-                .Replace("\r\n", "\n", StringComparison.Ordinal)
-                .Replace('\r', '\n')
-                .Replace("{", "\\{", StringComparison.Ordinal)
-                .Replace("}", "\\}", StringComparison.Ordinal)
-                .Replace("\n", "\\N", StringComparison.Ordinal);
+        Regex regex = new(String.Format(CultureInfo.InvariantCulture, EmphasisWordRegexFormat, Regex.Escape(emphasisWord)), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+        return regex.Replace(text, "{\\b1}$1{\\b0}", 1);
+    }
 
-        private static string ApplyEmphasis(string text, string? emphasisWord)
+    private static string ColorToAssPrimary(string? color)
+    {
+        if (String.IsNullOrWhiteSpace(color))
         {
-            if (String.IsNullOrWhiteSpace(emphasisWord))
-            {
-                return text;
-            }
-
-            Regex regex = new(String.Format(CultureInfo.InvariantCulture, EmphasisWordRegexFormat, Regex.Escape(emphasisWord)), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
-            return regex.Replace(text, "{\\b1}$1{\\b0}", 1);
+            return "&H00FFFFFF";
         }
 
-        private static string ColorToAssPrimary(string? color)
+        string normalized = color.Trim();
+        if (String.Equals(normalized, "white", StringComparison.OrdinalIgnoreCase))
         {
-            if (String.IsNullOrWhiteSpace(color))
-            {
-                return "&H00FFFFFF";
-            }
-
-            string normalized = color.Trim();
-            if (String.Equals(normalized, "white", StringComparison.OrdinalIgnoreCase))
-            {
-                return "&H00FFFFFF";
-            }
-
-            if (String.Equals(normalized, "black", StringComparison.OrdinalIgnoreCase))
-            {
-                return "&H00000000";
-            }
-
-            string hex = normalized.TrimStart('#');
-            return hex.Length == 6 && Int32.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)
-                ? String.Create(CultureInfo.InvariantCulture, $"&H00{hex[4..6]}{hex[2..4]}{hex[0..2]}").ToUpperInvariant()
-                : "&H00FFFFFF";
+            return "&H00FFFFFF";
         }
 
-        private static async Task RunFFmpegBurnAsync(string inputPath, string outputPath, string assPath, CancellationToken cancellationToken)
+        if (String.Equals(normalized, "black", StringComparison.OrdinalIgnoreCase))
         {
-            string escapedAssPath = assPath.Replace("\\", "/", StringComparison.Ordinal).Replace(":", "\\:", StringComparison.Ordinal);
-            ProcessStartInfo processStartInfo = new()
-            {
-                FileName = "ffmpeg",
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
+            return "&H00000000";
+        }
 
-            processStartInfo.ArgumentList.Add("-y");
-            processStartInfo.ArgumentList.Add("-i");
-            processStartInfo.ArgumentList.Add(inputPath);
-            processStartInfo.ArgumentList.Add("-vf");
-            processStartInfo.ArgumentList.Add($"ass='{escapedAssPath}'");
-            processStartInfo.ArgumentList.Add("-c:v");
-            processStartInfo.ArgumentList.Add("libx264");
-            processStartInfo.ArgumentList.Add("-crf");
-            processStartInfo.ArgumentList.Add("18");
-            processStartInfo.ArgumentList.Add("-preset");
-            processStartInfo.ArgumentList.Add("medium");
-            processStartInfo.ArgumentList.Add("-c:a");
-            processStartInfo.ArgumentList.Add("copy");
-            processStartInfo.ArgumentList.Add(outputPath);
+        string hex = normalized.TrimStart('#');
+        return hex.Length == 6 && Int32.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _)
+            ? String.Create(CultureInfo.InvariantCulture, $"&H00{hex[4..6]}{hex[2..4]}{hex[0..2]}").ToUpperInvariant()
+            : "&H00FFFFFF";
+    }
 
-            using Process process = new() { StartInfo = processStartInfo };
-            if (!process.Start())
-            {
-                throw new InvalidOperationException("Failed to start ffmpeg process.");
-            }
+    private static async Task RunFFmpegBurnAsync(string inputPath, string outputPath, string assPath, CancellationToken cancellationToken)
+    {
+        string escapedAssPath = assPath.Replace("\\", "/", StringComparison.Ordinal).Replace(":", "\\:", StringComparison.Ordinal);
+        ProcessStartInfo processStartInfo = new()
+        {
+            FileName = "ffmpeg",
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
 
-            Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+        processStartInfo.ArgumentList.Add("-y");
+        processStartInfo.ArgumentList.Add("-i");
+        processStartInfo.ArgumentList.Add(inputPath);
+        processStartInfo.ArgumentList.Add("-vf");
+        processStartInfo.ArgumentList.Add($"ass='{escapedAssPath}'");
+        processStartInfo.ArgumentList.Add("-c:v");
+        processStartInfo.ArgumentList.Add("libx264");
+        processStartInfo.ArgumentList.Add("-crf");
+        processStartInfo.ArgumentList.Add("18");
+        processStartInfo.ArgumentList.Add("-preset");
+        processStartInfo.ArgumentList.Add("medium");
+        processStartInfo.ArgumentList.Add("-c:a");
+        processStartInfo.ArgumentList.Add("copy");
+        processStartInfo.ArgumentList.Add(outputPath);
 
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-            string standardOutput = await standardOutputTask.ConfigureAwait(false);
-            string standardError = await standardErrorTask.ConfigureAwait(false);
+        using Process process = new() { StartInfo = processStartInfo };
+        if (!process.Start())
+        {
+            throw new InvalidOperationException("Failed to start ffmpeg process.");
+        }
 
-            if (process.ExitCode != 0)
-            {
-                throw new InvalidOperationException($"ffmpeg failed with code {process.ExitCode}: {standardError}{standardOutput}");
-            }
+        Task<string> standardOutputTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+        Task<string> standardErrorTask = process.StandardError.ReadToEndAsync(cancellationToken);
+
+        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        string standardOutput = await standardOutputTask.ConfigureAwait(false);
+        string standardError = await standardErrorTask.ConfigureAwait(false);
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException($"ffmpeg failed with code {process.ExitCode}: {standardError}{standardOutput}");
         }
     }
 }

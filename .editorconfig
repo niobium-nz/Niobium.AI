@@ -1,19 +1,27 @@
 # Remove the line below if you want to inherit .editorconfig settings from higher directories
 root = true
 
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{csproj,props,targets,slnx}]
+indent_size = 2
+
 # C# files
 [*.cs]
 
 #### Core EditorConfig Options ####
 charset = utf-8
 # Indentation and spacing
-indent_size = 4
-indent_style = space
 tab_width = 4
 
-# New line preferences
-end_of_line = crlf
-insert_final_newline = false
+# File scoped namespace declarations
+csharp_style_namespace_declarations = file_scoped:warning
 
 #### .NET Coding Conventions ####
 

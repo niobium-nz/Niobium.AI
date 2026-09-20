@@ -2,17 +2,16 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Niobium.AI.Shorts.Contracts;
 
-namespace Niobium.AI.Shorts.Executors
+namespace Niobium.AI.Shorts.Executors;
+
+internal class AttractiveShortScreenwriter(
+    IChatClientFactory chatClientFactory,
+    ILogger<AttractiveShortScreenwriter> logger)
+        : TypedResponseAgent<AttractiveShortScreenwriterInput, AttractiveShortScreenwriterOutput>(chatClientFactory, logger)
 {
-    internal class AttractiveShortScreenwriter(
-        IChatClientFactory chatClientFactory,
-        ILogger<AttractiveShortScreenwriter> logger)
-            : TypedResponseAgent<AttractiveShortScreenwriterInput, AttractiveShortScreenwriterOutput>(chatClientFactory, logger)
-    {
-        public override string Id => nameof(AttractiveShortScreenwriter);
+    public override string Id => nameof(AttractiveShortScreenwriter);
 
-        protected override Type InstructionsResourceBaseType => this.GetType();
+    protected override Type InstructionsResourceBaseType => this.GetType();
 
-        protected override ReasoningEffort Reasoning => ReasoningEffort.Medium;
-    }
+    protected override ReasoningEffort Reasoning => ReasoningEffort.Medium;
 }

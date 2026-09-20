@@ -1,7 +1,6 @@
-namespace Niobium.AI
+namespace Niobium.AI;
+
+public interface IVideoClientFactory
 {
-    public interface IVideoClientFactory
-    {
-        IVideoClient CreateClient(string model, string? provider);
-    }
+    IVideoClient CreateClient(string model, string? provider);
 }

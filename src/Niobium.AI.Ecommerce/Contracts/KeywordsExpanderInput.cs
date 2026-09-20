@@ -1,13 +1,12 @@
-namespace Niobium.AI.Ecommerce.Contracts
+namespace Niobium.AI.Ecommerce.Contracts;
+
+public class KeywordsExpanderInput
 {
-    public class KeywordsExpanderInput
-    {
-        public required string CategoryFocus { get; set; }
+    public required string CategoryFocus { get; set; }
 
-        public required string Country { get; set; }
+    public required string Country { get; set; }
 
-        public List<string> SeedKeywords { get; set; } = [];
+    public List<string> SeedKeywords { get; set; } = [];
 
-        public List<KeywordsExpanderOptionalConstraint> OptionalConstraints { get; set; } = [];
-    }
+    public List<KeywordsExpanderOptionalConstraint> OptionalConstraints { get; set; } = [];
 }

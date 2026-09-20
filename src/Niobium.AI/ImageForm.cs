@@ -1,9 +1,8 @@
-namespace Niobium.AI
+namespace Niobium.AI;
+
+public enum ImageForm
 {
-    public enum ImageForm
-    {
-        Square = 0,
-        Portrait = 1,
-        Landscape = 2,
-    }
+    Square = 0,
+    Portrait = 1,
+    Landscape = 2,
 }

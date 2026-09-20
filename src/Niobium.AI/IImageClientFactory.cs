@@ -1,7 +1,6 @@
-namespace Niobium.AI
+namespace Niobium.AI;
+
+public interface IImageClientFactory
 {
-    public interface IImageClientFactory
-    {
-        IImageClient CreateClient(string model, string? provider = null);
-    }
+    IImageClient CreateClient(string model, string? provider = null);
 }

@@ -1,7 +1,6 @@
-namespace Niobium.AI
+namespace Niobium.AI;
+
+public interface IResponseGenerator<TInput, TOutput> : IExecutor
 {
-    public interface IResponseGenerator<TInput, TOutput> : IExecutor
-    {
-        Task<TOutput> RunAsync(TInput input, CancellationToken? cancellationToken = null);
-    }
+    Task<TOutput> RunAsync(TInput input, CancellationToken? cancellationToken = null);
 }

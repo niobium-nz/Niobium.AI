@@ -1,9 +1,8 @@
-namespace Niobium.AI
-{
-    public interface IImageInstruction
-    {
-        ImageForm Form { get; }
+namespace Niobium.AI;
 
-        List<ImageReference> References { get; }
-    }
+public interface IImageInstruction
+{
+    ImageForm Form { get; }
+
+    List<ImageReference> References { get; }
 }

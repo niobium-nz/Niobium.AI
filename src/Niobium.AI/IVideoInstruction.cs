@@ -1,13 +1,12 @@
-namespace Niobium.AI
+namespace Niobium.AI;
+
+public interface IVideoInstruction
 {
-    public interface IVideoInstruction
-    {
-        string VideoPrompt { get; set; }
+    string VideoPrompt { get; set; }
 
-        int VideoWidth { get; set; }
+    int VideoWidth { get; set; }
 
-        int VideoHeight { get; set; }
+    int VideoHeight { get; set; }
 
-        int VideoDurationInSeconds { get; set; }
-    }
+    int VideoDurationInSeconds { get; set; }
 }

@@ -1,13 +1,12 @@
-namespace Niobium.AI
+namespace Niobium.AI;
+
+public interface IImageClient
 {
-    public interface IImageClient
-    {
-        Task<IEnumerable<BinaryData>> RunAsync(
-            string prompt,
-            int width,
-            int height,
-            int variantCount = 1,
-            List<ImageReference>? references = null,
-            CancellationToken cancellationToken = default);
-    }
+    Task<IEnumerable<BinaryData>> RunAsync(
+        string prompt,
+        int width,
+        int height,
+        int variantCount = 1,
+        List<ImageReference>? references = null,
+        CancellationToken cancellationToken = default);
 }

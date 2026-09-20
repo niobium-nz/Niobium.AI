@@ -1,7 +1,6 @@
-namespace Niobium.AI.Ecommerce.Contracts
+namespace Niobium.AI.Ecommerce.Contracts;
+
+public class ProductProfilerInput
 {
-    public class ProductProfilerInput
-    {
-        public required string LandingPageUrl { get; set; }
-    }
+    public required string LandingPageUrl { get; set; }
 }

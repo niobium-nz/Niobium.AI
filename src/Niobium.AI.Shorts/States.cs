@@ -1,9 +1,8 @@
-namespace Niobium.AI.Shorts
+namespace Niobium.AI.Shorts;
+
+internal class States
 {
-    internal class States
-    {
-        public const string SharedScope = "SharedScope";
-        public const string UserInput = "UserInput";
-        public const string VideoInstructions = "VideoInstructions";
-    }
+    public const string SharedScope = "SharedScope";
+    public const string UserInput = "UserInput";
+    public const string VideoInstructions = "VideoInstructions";
 }

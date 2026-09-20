@@ -1,9 +1,8 @@
-namespace Niobium.AI.OpenAI
-{
-    internal record SoraJobError
-    {
-        public string? Code { get; init; }
+namespace Niobium.AI.OpenAI;
 
-        public string? Message { get; init; }
-    }
+internal record SoraJobError
+{
+    public string? Code { get; init; }
+
+    public string? Message { get; init; }
 }

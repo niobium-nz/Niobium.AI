@@ -1,9 +1,8 @@
-namespace Niobium.AI.Ecommerce.Contracts
+namespace Niobium.AI.Ecommerce.Contracts;
+
+internal record ReviewSimulatorInput
 {
-    internal record ReviewSimulatorInput
-    {
-        public required string TargetCountry { get; init; }
-        public required ProductDetails ProductDetails { get; init; }
-        public required CustomerSegment CustomerSegment { get; init; }
-    }
+    public required string TargetCountry { get; init; }
+    public required ProductDetails ProductDetails { get; init; }
+    public required CustomerSegment CustomerSegment { get; init; }
 }

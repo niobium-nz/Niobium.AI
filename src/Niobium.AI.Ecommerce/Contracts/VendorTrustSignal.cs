@@ -1,11 +1,10 @@
-namespace Niobium.AI.Ecommerce.Contracts
+namespace Niobium.AI.Ecommerce.Contracts;
+
+public class VendorTrustSignal
 {
-    public class VendorTrustSignal
-    {
-        public string? Type { get; set; }
+    public string? Type { get; set; }
 
-        public string? Value { get; set; }
+    public string? Value { get; set; }
 
-        public string? SourceUrl { get; set; }
-    }
+    public string? SourceUrl { get; set; }
 }

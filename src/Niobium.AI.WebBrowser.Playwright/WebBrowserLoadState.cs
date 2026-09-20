@@ -1,14 +1,13 @@
 using System.Runtime.Serialization;
 
-namespace Niobium.AI.WebBrowser.Playwright
+namespace Niobium.AI.WebBrowser.Playwright;
+
+public enum WebBrowserLoadState
 {
-    public enum WebBrowserLoadState
-    {
-        [EnumMember(Value = "load")]
-        Load,
-        [EnumMember(Value = "domcontentloaded")]
-        DOMContentLoaded,
-        [EnumMember(Value = "networkidle")]
-        NetworkIdle,
-    }
+    [EnumMember(Value = "load")]
+    Load,
+    [EnumMember(Value = "domcontentloaded")]
+    DOMContentLoaded,
+    [EnumMember(Value = "networkidle")]
+    NetworkIdle,
 }

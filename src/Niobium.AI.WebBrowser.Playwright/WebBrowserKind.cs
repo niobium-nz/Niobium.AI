@@ -1,10 +1,9 @@
-namespace Niobium.AI.WebBrowser.Playwright
+namespace Niobium.AI.WebBrowser.Playwright;
+
+public enum WebBrowserKind
 {
-    public enum WebBrowserKind
-    {
-        Chrome,
-        Edge,
-        Firefox,
-        Webkit,
-    }
+    Chrome,
+    Edge,
+    Firefox,
+    Webkit,
 }

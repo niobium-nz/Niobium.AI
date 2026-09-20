@@ -1,9 +1,8 @@
-namespace Niobium.AI.WebBrowser.Playwright
-{
-    public sealed record WebBrowserNavigationResult
-    {
-        public required WebBrowserTabInfo Tab { get; init; }
+namespace Niobium.AI.WebBrowser.Playwright;
 
-        public string? Url { get; init; }
-    }
+public sealed record WebBrowserNavigationResult
+{
+    public required WebBrowserTabInfo Tab { get; init; }
+
+    public string? Url { get; init; }
 }

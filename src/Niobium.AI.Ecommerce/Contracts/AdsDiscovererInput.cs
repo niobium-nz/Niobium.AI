@@ -1,9 +1,8 @@
-namespace Niobium.AI.Ecommerce.Contracts
-{
-    public class AdsDiscovererInput
-    {
-        public required string Keyword { get; set; }
+namespace Niobium.AI.Ecommerce.Contracts;
 
-        public required string Country { get; set; }
-    }
+public class AdsDiscovererInput
+{
+    public required string Keyword { get; set; }
+
+    public required string Country { get; set; }
 }

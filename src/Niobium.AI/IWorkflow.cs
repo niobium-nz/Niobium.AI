@@ -1,8 +1,7 @@
-namespace Niobium.AI
+namespace Niobium.AI;
+
+public interface IWorkflow<TInput, TOutput> : IResponseGenerator<TInput, TOutput>
+    where TInput : notnull
+    where TOutput : class
 {
-    public interface IWorkflow<TInput, TOutput> : IResponseGenerator<TInput, TOutput>
-        where TInput : notnull
-        where TOutput : class
-    {
-    }
 }

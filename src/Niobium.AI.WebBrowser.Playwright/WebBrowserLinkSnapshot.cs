@@ -1,13 +1,12 @@
-namespace Niobium.AI.WebBrowser.Playwright
+namespace Niobium.AI.WebBrowser.Playwright;
+
+public sealed record WebBrowserLinkSnapshot
 {
-    public sealed record WebBrowserLinkSnapshot
-    {
-        public string? Href { get; init; }
+    public string? Href { get; init; }
 
-        public required int Index { get; init; }
+    public required int Index { get; init; }
 
-        public string? Text { get; init; }
+    public string? Text { get; init; }
 
-        public string? Title { get; init; }
-    }
+    public string? Title { get; init; }
 }

@@ -1,9 +1,8 @@
 using Microsoft.Extensions.AI;
 
-namespace Niobium.AI.Ecommerce.Tools
+namespace Niobium.AI.Ecommerce.Tools;
+
+public class ToolBox(AdsLibraryTool adsLibraryTool) : AI.ToolBox
 {
-    public class ToolBox(AdsLibraryTool adsLibraryTool) : AI.ToolBox
-    {
-        public AITool AdsLibraryTool => AIFunctionFactory.Create(adsLibraryTool.SearchAds);
-    }
+    public AITool AdsLibraryTool => AIFunctionFactory.Create(adsLibraryTool.SearchAds);
 }
