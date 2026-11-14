@@ -73,3 +73,8 @@ azd provision --environment test
 ```
 
 For GitHub Actions, the workflow exposes the same source environment variables and `azd up` triggers the same hook-driven parameter generation automatically.
+
+## Model conventions
+
+Read [model names and data contract ownership](docs/model-contracts.md) for the
+shared business-key naming and model/domain responsibility rules.
